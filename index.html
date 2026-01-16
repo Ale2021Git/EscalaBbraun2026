@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#00A97A">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>B.Braun - Escala & Marcadores</title>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&display=swap');
+        
+        :root { 
+            --cor-amarela: #FDD835; --cor-verde-escala: #81C784; --hoje: #A800C4; 
+            --verde-oficial: #00A97A; --texto-escuro: #37474F; --bg-site: #f4f7f6;
+            --bg-card: #ffffff; --bg-num-sem: rgba(0,169,122,0.1);
+            --cor-feriado-borda: #ff3b30;
+        }
+
+        body.dark-mode {
+            --bg-site: #121212; --bg-card: #1e1e1e; --texto-escuro: #e0e0e0;
+            --cor-amarela: #C4A71A;
+        }
+
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-site); margin: 0; padding-bottom: 80px; text-align: center; color: var(--texto-escuro); transition: 0.3s; user-select: none; -webkit-user-select: none; }
+        header { background: rgba(0, 169, 122, 0.95); backdrop-filter: blur(10px); padding: 25px 15px; border-radius: 0 0 30px 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .logo-txt { font-family: 'Montserrat', sans-serif; font-size: 2em; font-weight: 700; color: white; margin-bottom: 12px; letter-spacing: -2px; text-transform: uppercase; }
+        
+        .controles { display: flex; gap: 8px; justify-content: center; align-items: center; }
+        select { padding: 10px; border-radius: 12px; border: none; background: white; font-weight: bold; font-size: 0.9em; color: #333; }
+        .btn-dark-toggle { background: rgba(255,255,255,0.2); border: none; color: white; padding: 10px; border-radius: 12px; cursor: pointer; font-size: 1.2em; }
+
+        .container { padding: 15px; max-width: 500px; margin: 0 auto; }
+        
+        #painelContagem { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; padding: 10px; margin-top: 10px; }
+        .badge-count { 
+            background: var(--bg-card); padding: 6px 12px; border-radius: 50px; font-size: 0.8em; 
+            font-weight: 700; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; 
+            align-items: center; gap: 5px; border: 1px solid rgba(0,169,122,0.1); 
+            animation: popIn 0.3s ease;
+        }
+        .badge-count span { color: var(--verde-oficial); background: rgba(0,169,122,0.1); padding: 1px 6px; border-radius: 8px; }
+
+        .mes-card { background: var(--bg-card); margin-bottom: 20px; border-radius: 18px; padding: 15px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); scroll-margin-top: 110px; }
+        .grid { display: grid; grid-template-columns: 35px repeat(7, 1fr); gap: 5px; align-items: center; }
+        .dia-sem { font-size: 0.7em; font-weight: bold; color: #888; }
+        .num-semana { font-size: 0.7em; color: var(--verde-oficial); font-weight: bold; background: var(--bg-num-sem); border-radius: 4px; padding: 4px 0; }
+        
+        .dia { aspect-ratio: 1/1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.9em; font-weight: 600; position: relative; cursor: pointer; transition: transform 0.2s; }
+        .AMARELO { background: var(--cor-amarela); color: #4b3a00; }
+        .VERDE { background: var(--cor-verde-escala); color: white; }
+        .meu-trabalho { box-shadow: inset 0 0 0 3px var(--texto-escuro); }
+        
+        /* AJUSTE NO DIA ATUAL */
+        .hoje { 
+            background: var(--hoje) !important; 
+            color: white !important; 
+            transform: scale(1.1); 
+            z-index: 10; 
+            border: 2px solid white !important;
+            box-shadow: 0 4px 15px rgba(168, 0, 196, 0.4);
+        }
+        
+        .feriado { border: 2px solid var(--cor-feriado-borda) !important; }
+        .feriado-pin { position: absolute; top: -6px; right: -4px; font-size: 16px; z-index: 5; }
+
+        #telaFeriado {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 2000; flex-direction: column; align-items: center; justify-content: center;
+            padding: 30px; box-sizing: border-box; text-align: center; animation: fadeIn 0.3s ease-in;
+        }
+        #telaFeriado.bg-amarelo { background: #FDD835; color: #4b3a00; }
+        #telaFeriado.bg-verde { background: #00A97A; color: white; }
+        #telaFeriado.bg-amarelo button { background: #4b3a00; color: white; }
+        #telaFeriado.bg-verde button { background: white; color: #00A97A; }
+
+        .calendar-leaf { background: white; width: 180px; height: 200px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); overflow: hidden; margin-bottom: 30px; display: flex; flex-direction: column; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .leaf-header { background: #d32f2f; color: white; padding: 10px; font-weight: 900; font-size: 1.2em; text-transform: uppercase; }
+        .leaf-body { flex-grow: 1; display: flex; align-items: center; justify-content: center; font-size: 5em; font-weight: 900; color: #333; font-family: 'Montserrat', sans-serif; }
+
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal-content { background: var(--bg-card); padding: 25px; border-radius: 25px; width: 85%; max-width: 340px; color: var(--texto-escuro); }
+        .emoji-picker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 15px; }
+        .emoji-btn { font-size: 1.5em; border: 1px solid rgba(128,128,128,0.2); background: rgba(255,255,255,0.05); border-radius: 12px; cursor: pointer; padding: 8px; display: flex; flex-direction: column; align-items: center; color: inherit; }
+        .emoji-btn span { font-size: 0.45em; font-weight: bold; text-transform: uppercase; margin-top: 4px; }
+        
+        .btn-limpar-modal { grid-column: span 4; margin-top: 10px; padding: 12px; background: rgba(0,0,0,0.03); border: 1px dashed #ccc; border-radius: 12px; color: #888; font-size: 0.8em; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        footer { margin-top: 10px; padding: 20px 0; font-size: 0.8em; color: #888; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo-txt">B|BRAUN</div>
+    <div class="controles">
+        <select id="anoSelect" onchange="gerar()">
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+            <option value="2028">2028</option>
+        </select>
+        <select id="turmaSelect" onchange="salvarTurma()">
+            <option value="">Minha Turma</option>
+            <option value="AC">Turma A ou C</option>
+            <option value="BD">Turma B ou D</option>
+        </select>
+        <button class="btn-dark-toggle" onclick="toggleDarkMode()">🌓</button>
+    </div>
+    <div id="painelContagem"></div>
+</header>
+
+<div class="container" id="calendario"></div>
+
+<footer>
+    Alexandre Lacerda
+</footer>
+
+<div id="telaFeriado">
+    <div class="calendar-leaf">
+        <div id="leafMes" class="leaf-header">MES</div>
+        <div id="leafDia" class="leaf-body">01</div>
+    </div>
+    <h2 id="txtNomeFeriado" style="font-size: 2.2em; margin: 10px 0; text-transform: uppercase; font-weight: 900;">FERIADO</h2>
+    <button onclick="fecharTelaFeriado()" style="border:none; padding:15px 40px; border-radius:50px; font-weight:900; margin-top:30px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); cursor: pointer;">VOLTAR</button>
+</div>
+
+<div id="modal" onclick="fecharModalExterno(event, 'modal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div id="modalData" style="font-weight: 900; margin-bottom: 15px; font-size: 1.4em; color: var(--verde-oficial);"></div>
+        <div class="emoji-picker">
+            <button class="emoji-btn" onclick="salvarNota('🛠️')">🛠️<span>Extra</span></button>
+            <button class="emoji-btn" onclick="salvarNota('💻')">💻<span>SAP</span></button>
+            <button class="emoji-btn" onclick="salvarNota('⚙️')">⚙️<span>Prev</span></button>
+            <button class="emoji-btn" onclick="salvarNota('🔧')">🔧<span>Maint</span></button> 
+            <button class="emoji-btn" onclick="salvarNota('🎂')">🎂<span>Niver</span></button>
+            <button class="emoji-btn" onclick="salvarNota('🏥')">🏥<span>Médico</span></button>
+            <button class="emoji-btn" onclick="salvarNota('🔄')">🔄<span>Troca</span></button>
+            <button class="emoji-btn" onclick="salvarNota('🏖️')">🏖️<span>Férias</span></button>
+            <button class="btn-limpar-modal" onclick="salvarNota('')">🗑️ Limpar Marcador</button>
+        </div>
+        <button onclick="fecharModal('modal')" style="margin-top: 15px; width: 100%; padding: 12px; border: none; background: #eee; color: #666; border-radius: 12px; font-weight: bold; cursor: pointer;">FECHAR</button>
+    </div>
+</div>
+
+<script>
+const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const diasSemana = ["S", "T", "Q", "Q", "S", "S", "D"];
+const dataRef = new Date(2026, 0, 10);
+const feriadosFixos = { "01-01": "Ano Novo", "01-10": "Padroeiro SG", "04-21": "Tiradentes", "04-23": "São Jorge", "05-01": "Trabalho", "09-07": "Independência", "09-22": "Aniv. SG", "10-12": "Aparecida", "11-02": "Finados", "11-15": "Proclamação", "11-20": "Consciência", "12-25": "Natal" };
+let dataSelecionada = "";
+
+function getFeriadosMoveis(ano) {
+    const a = ano % 19, b = Math.floor(ano / 100), c = ano % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451), mes = Math.floor((h + l - 7 * m + 114) / 31), dia = ((h + l - 7 * m + 114) % 31) + 1;
+    const pascoa = new Date(ano, mes - 1, dia);
+    const formatDate = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return { [formatDate(new Date(pascoa.getTime() - 47*86400000))]: "Carnaval", [formatDate(new Date(pascoa.getTime() - 2*86400000))]: "Sexta Santa", [formatDate(new Date(pascoa.getTime() + 60*86400000))]: "Corpus Christi" };
+}
+
+function getNumeroSemana(data) {
+    const d = new Date(Date.UTC(data.getFullYear(), data.getMonth(), data.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+function gerar() {
+    const ano = parseInt(document.getElementById('anoSelect').value);
+    const turma = document.getElementById('turmaSelect').value;
+    const cont = document.getElementById('calendario');
+    const painel = document.getElementById('painelContagem');
+    const notas = JSON.parse(localStorage.getItem('notasEscala') || '{}');
+    const moveis = getFeriadosMoveis(ano);
+    
+    // DATA LOCAL CORRIGIDA
+    const agora = new Date();
+    const hojeIso = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
+
+    let contagem = {};
+    cont.innerHTML = "";
+
+    for (let m = 0; m < 12; m++) {
+        let diasNoMes = new Date(ano, m + 1, 0).getDate();
+        let diasHtml = "";
+        let prim = new Date(ano, m, 1);
+        let espacos = prim.getDay() === 0 ? 6 : prim.getDay() - 1;
+        
+        diasHtml += `<div class="num-semana">${getNumeroSemana(prim)}</div>`;
+        for (let i = 0; i < espacos; i++) diasHtml += `<div class="vazio"></div>`;
+
+        for (let d = 1; d <= diasNoMes; d++) {
+            let atual = new Date(ano, m, d);
+            let iso = `${ano}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            if (atual.getDay() === 1 && d !== 1) diasHtml += `<div class="num-semana">${getNumeroSemana(atual)}</div>`;
+            
+            let diff = Math.floor((atual - dataRef) / 86400000);
+            let isAmarelo = (((diff % 4) + 4) % 4) < 2;
+            let destaque = ((turma === "AC" && isAmarelo) || (turma === "BD" && !isAmarelo)) ? "meu-trabalho" : "";
+            let nomeFeriado = moveis[iso] || feriadosFixos[`${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`];
+            let emoji = notas[iso] || "";
+
+            if (emoji && iso.startsWith(ano)) contagem[emoji] = (contagem[emoji] || 0) + 1;
+
+            diasHtml += `<div class="dia ${isAmarelo ? 'AMARELO':'VERDE'} ${iso === hojeIso ? 'hoje':''} ${destaque} ${nomeFeriado ? 'feriado' : ''}" onclick="cliqueDia('${iso}', '${nomeFeriado || ''}')">
+                ${d}${emoji ? `<span style="position:absolute; bottom:2px; font-size:12px;">${emoji}</span>` : ""}${nomeFeriado ? `<span class="feriado-pin">📍</span>` : ""}
+            </div>`;
+        }
+        cont.innerHTML += `<div class="mes-card" id="mes-${m}"><h3>${nomesMeses[m]}</h3><div class="grid"><div class="dia-sem">W</div>${diasSemana.map(s => `<div class="dia-sem">${s}</div>`).join('')}${diasHtml}</div></div>`;
+    }
+
+    painel.innerHTML = "";
+    Object.entries(contagem).forEach(([emoji, total]) => {
+        painel.innerHTML += `<div class="badge-count">${emoji} <span>${total}</span></div>`;
+    });
+
+    // ROLAGEM AUTOMÁTICA PARA O MÊS ATUAL
+    if (ano === agora.getFullYear()) {
+        setTimeout(() => {
+            const el = document.getElementById(`mes-${agora.getMonth()}`);
+            if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+    }
+}
+
+function cliqueDia(iso, feriado) {
+    dataSelecionada = iso;
+    const partes = iso.split('-');
+    let atual = new Date(partes[0], partes[1]-1, partes[2]);
+    let diff = Math.floor((atual - dataRef) / 86400000);
+    let isAmarelo = (((diff % 4) + 4) % 4) < 2;
+
+    if (feriado) {
+        const tela = document.getElementById('telaFeriado');
+        tela.className = isAmarelo ? 'bg-amarelo' : 'bg-verde';
+        document.getElementById('leafMes').innerText = nomesMeses[parseInt(partes[1]) - 1].substring(0,3).toUpperCase();
+        document.getElementById('leafDia').innerText = partes[2];
+        document.getElementById('txtNomeFeriado').innerText = feriado;
+        tela.style.display = 'flex';
+    } else {
+        document.getElementById('modalData').innerText = iso.split('-').reverse().join('/');
+        document.getElementById('modal').style.display = 'flex';
+    }
+}
+
+function fecharTelaFeriado() { document.getElementById('telaFeriado').style.display = 'none'; }
+function fecharModal(id) { document.getElementById(id).style.display = 'none'; }
+function fecharModalExterno(e, id) { if(e.target.id === id) fecharModal(id); }
+
+function salvarNota(emoji) {
+    let notas = JSON.parse(localStorage.getItem('notasEscala') || '{}');
+    emoji === "" ? delete notas[dataSelecionada] : notas[dataSelecionada] = emoji;
+    localStorage.setItem('notasEscala', JSON.stringify(notas));
+    fecharModal('modal'); gerar();
+}
+
+function salvarTurma() { localStorage.setItem('turmaSalva', document.getElementById('turmaSelect').value); gerar(); }
+function toggleDarkMode() { document.body.classList.toggle('dark-mode'); localStorage.setItem('darkMode', document.body.classList.contains('dark-mode')); }
+
+window.onload = () => { 
+    if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
+    document.getElementById('turmaSelect').value = localStorage.getItem('turmaSalva') || ""; 
+    gerar(); 
+};
+</script>
+</body>
+</html>
